@@ -1,0 +1,130 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ output extension=".cs" #>
+
+<#@ assembly name="NetStandard" #>
+<#@ assembly name="System.Runtime" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Linq" #>
+<#@ assembly name="System.Data" #>
+
+
+<#@ include file="assemblyrefs.ttinclude" #>
+
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+
+<#@ import namespace="Microsoft.Extensions.Configuration" #>
+<#@ import namespace="Microsoft.Extensions.Configuration.Json" #>
+<#@ import namespace="DatabaseSchemaReader" #>
+<#@ import namespace="DatabaseSchemaReader.DataSchema" #>
+<#@ import namespace="System.Data.SqlClient" #>
+
+using System;
+using System.ComponentModel.DataAnnotations;
+namespace solverweb.model {
+<#
+
+using(var cnn = new SqlConnection("Data Source=(localdb)\\ProjectsV13;Initial Catalog=WideWorldImporters;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False"))
+using(var dbReader = new DatabaseReader(cnn))
+{
+    var schema = dbReader.ReadAll();
+
+    foreach(var table in schema.Tables)
+    {
+        if(table.Name.EndsWith("_Archive"))continue;
+        GenClass(table);
+
+    }
+}
+
+#>
+}
+<#+
+void GenClass(DatabaseTable table){
+#>
+    ///<summary> <#=table.SchemaOwner#>.<#=table.Name#> </summary>
+    public class <#=table.Name#>
+    {
+    <#+
+        foreach(var col in table.Columns){
+            GenProperty(col);
+        }
+    #>
+    }
+<#+
+}
+
+void GenProperty(DatabaseColumn col){
+    string kind = GetKind(col);
+    if(kind==null){
+    
+    return;
+    }
+    if (col.IsPrimaryKey)
+    {
+#>
+   [Key]
+<#+        
+    }
+    #>
+    public <#= kind #> <#=col.Name#>{get;set;}
+<#+
+}
+#>
+
+<#+
+private static string GetKind(DatabaseColumn col)
+{
+    var dt = col.DataType;
+    if (col.DataType == null)
+        return null;
+
+    Type type = col.DataType.GetNetType();
+    if (type == null)
+        return null;
+
+    
+
+    if (type == typeof(string))
+        return "string";
+
+    if (type == typeof(short))
+        return "short";
+
+    if (type == typeof(int))
+        return "int";
+
+    if (type == typeof(long))
+        return "long";
+
+    if (type == typeof(bool))
+        return "bool";
+
+    if (type == typeof(Guid))
+        return "System.Guid";
+
+    if (type == typeof(DateTime))
+        return "DateTimeOffset";
+
+    if (type == typeof(TimeSpan))
+        return "TimeSpan";
+
+    if (type == typeof(decimal))
+        return "decimal";
+
+    if (type == typeof(byte) || type == typeof(sbyte))
+        return "byte";
+
+    if (type == typeof(byte[]))
+        return "byte[]";
+
+    if (type == typeof(double))
+        return "double";
+
+    if (type == typeof(float))
+        return "float";
+
+    return null;
+}
+#>

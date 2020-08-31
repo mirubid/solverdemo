@@ -22,12 +22,14 @@ namespace solverweb
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration, IWebHostEnvironment env)
         {
             Configuration = configuration;
+            Environment = env;
         }
 
         public IConfiguration Configuration { get; }
+        public IWebHostEnvironment Environment { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -37,6 +39,7 @@ namespace solverweb
             services.AddOData();
             services.AddODataQueryFilter();
 
+            
                 
         }
 
@@ -61,6 +64,7 @@ namespace solverweb
                 endpoints.MapControllers();
                 endpoints.MapODataRoute("odata", "odata", GetEdmModel());
                 endpoints.Filter().MaxTop(100);
+
                 endpoints.MapGet("{*path}", (HttpContext context)=> {
                     context.Response.ContentType = "text/plain";
                     context.Response.StatusCode = 200;
@@ -76,11 +80,18 @@ namespace solverweb
         {
             var odataBuilder = new ODataConventionModelBuilder();
 
-            var demo = odataBuilder.EntitySet<Demo>("Demo");
+            var demo = odataBuilder.EntitySet<City>("Demo");
             demo.EntityType.HasKey(d => d.Key);
 
-            return odataBuilder.GetEdmModel();
+            //return odataBuilder.GetEdmModel();
 
+
+            var resolver = new DbSchemaResolver();
+            var cnn = Configuration.GetConnectionString("db");
+
+            return resolver.GetEdmModel(cnn);
+
+            
         }
     }
 }

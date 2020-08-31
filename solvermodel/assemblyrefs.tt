@@ -1,0 +1,47 @@
+﻿<#@ template debug="false" hostspecific="true" #>
+<#@ output extension=".ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="EnvDTE" #>
+<#@ assembly name="VSLangProj" #>
+<#
+
+    LoadProjectDetails();
+
+    ReferenceAssembly("Microsoft.Extensions.Configuration");
+    ReferenceAssembly("Microsoft.Extensions.Configuration.Json");
+    ReferenceAssembly("DatabaseSchemaReader");
+
+    
+#>
+<#+ 
+private EnvDTE.DTE dte;
+private VSLangProj.VSProject vsProject;
+
+
+void ReferenceAssembly(string assemblyName){
+    foreach(var referenceObj in vsProject.References)
+        {
+            var reference = (VSLangProj.Reference)referenceObj;
+            if(reference.Name != assemblyName) continue;
+#>
+\<#@ assembly name="<#=reference.Path#>" \#>
+<#+
+            return;            
+        }
+#>
+
+<#+
+}
+
+void LoadProjectDetails(){
+    dte = (this.Host as IServiceProvider).GetService(typeof(EnvDTE.DTE))
+                 as EnvDTE.DTE;
+    var templateItem = dte.Solution.FindProjectItem(this.Host.TemplateFile);
+    var project = templateItem.ContainingProject;
+    vsProject = project.Object as VSLangProj.VSProject;
+}
+
+
+
+
+#>
