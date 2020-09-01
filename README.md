@@ -79,9 +79,13 @@ e.g. https://localhost:44302/odata/Cities?$orderby=LatestRecordedPopulation desc
 
 ## ToDo
 
-include dbname and schema in route to avoid potential ambiguities
+include db name and schema name in route to avoid potential ambiguities
 
 implement foreign key links (supported by odata but I didn't implement for the sake of time)
+
+refactor configuration to support multiple databases
+
+implement some kind of whitelist or blacklist to control which tables to expose
 
 
 
