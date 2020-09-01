@@ -11,6 +11,9 @@ using System.Collections.Generic;
 
 namespace solvertest
 {
+    /// <summary>
+    /// these aren't really unit tests, I just used the unit test framework to test out how things work
+    /// </summary>
     [TestFixture]
     public class DbSchemaTests
     {
@@ -45,7 +48,7 @@ namespace solvertest
             using (var dbReader = new DatabaseReader(cnn))
             {
                 var schema = dbReader.ReadAll();
-
+                
                 foreach(var table in schema.Tables)
                 {
                     if (table.Name.EndsWith("_Archive")) continue;
@@ -53,8 +56,10 @@ namespace solvertest
                     
                     var tableType = new EdmEntityType("NS", table.Name);
                     
+                    
                     TestContext.Write($"table {table.SchemaOwner} {table.Name}");
                     TestContext.Write("(");
+
                     foreach(var col in table.Columns)
                     {
                         var kind = GetKind(col);
@@ -75,7 +80,48 @@ namespace solvertest
                 }
             }
         }
+        [Test]
+        public void ShouldBeAbleToListForeignKeys()
+        {
 
+
+
+            var cb = new ConfigurationBuilder();
+            Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(cb, "appsettings.json");
+            IConfiguration config = cb.Build();
+
+            var connectionString = config.GetConnectionString("db");
+
+            EdmModel model = new EdmModel();
+
+            // create and add entity container
+            EdmEntityContainer container = new EdmEntityContainer("NS", "DefaultContainer");
+            model.AddElement(container);
+            DatabaseSchema schema = null;
+
+            using (var cnn = new SqlConnection(connectionString))
+            using (var dbReader = new DatabaseReader(cnn))
+            {
+                 schema = dbReader.ReadAll();                
+            }
+            foreach (var table in schema.Tables)
+            {
+                if (table.Name.EndsWith("_Archive")) continue;
+
+
+                var tableType = new EdmEntityType("NS", table.Name);
+
+
+                TestContext.Write($"table {table.SchemaOwner} {table.Name}");
+                TestContext.Write("(");
+                foreach (var fk in table.ForeignKeys)
+                {
+                    TestContext.WriteLine($"FK {fk.Name} {fk.SchemaOwner }.{fk.TableName} ({string.Join(",", fk.Columns)}) ==> {fk.RefersToSchema}.{fk.RefersToTable} ({string.Join(",", fk.ReferencedColumns(schema))}) ");
+                }
+
+                TestContext.WriteLine(")");
+            }
+        }
         [Test]
         public void ShouldBeAbleToUseDbContext()
         {
