@@ -1,0 +1,105 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ output extension=".cs" #>
+<#@ assembly name="NetStandard" #>
+<#@ assembly name="System.Runtime" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Linq" #>
+<#@ assembly name="System.Data" #>
+<#@ include file="$(SolutionDir)solvermodel/assemblyrefs.ttinclude" #>
+<#@ include file="$(SolutionDir)solvermodel/CodeGenHelper.ttinclude" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="Microsoft.Extensions.Configuration" #>
+<#@ import namespace="Microsoft.Extensions.Configuration.Json" #>
+<#@ import namespace="DatabaseSchemaReader" #>
+<#@ import namespace="DatabaseSchemaReader.DataSchema" #>
+<#@ import namespace="System.Data.SqlClient" #>
+<#
+
+DatabaseSchema schema = GetDatabaseSchema("db");
+#>
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNet.OData;
+using System.ComponentModel.DataAnnotations;
+
+using solverweb.data;
+
+namespace solverweb.Controllers {    
+    <#
+    foreach(var table in schema.Tables)
+    {
+        if(table.Name.EndsWith("_Archive"))continue;
+        
+        GenController(table);
+
+    }
+
+    #>
+    
+}
+
+<#+
+void GenController(DatabaseTable table){
+    var ns = GetNamespace(table);
+    var name = GetEntityName(table);
+    #>
+public partial class <#=name#>Controller:ControllerBase
+{
+    private SolverDbContext _db;
+
+    public <#=name#>Controller(SolverDbContext db){
+        _db=db;
+    }
+
+    [EnableQuery(PageSize = 20)]
+    public IQueryable<<#=ns#>.<#=name#>> Get()
+    {
+            return _db.<#=name#>;
+        
+    }
+
+<#+ PushIndent("    ");
+    GenSingleResult(table); 
+PopIndent(); #>
+}
+<#+
+}
+#>
+
+<#+
+void GenSingleResult(DatabaseTable table){
+    var ns = GetNamespace(table);
+    var name = GetEntityName(table);
+    var pks = GetPrimaryKeys(table);
+#>
+[EnableQuery]
+public <#=ns#>.<#=name#> Get(<#= GetParameters(pks)#> )
+{
+    var result = Get().Where(p => <#= GetPredicates(pks) #>).FirstOrDefault();
+    return result;
+}
+<#+
+}
+string GetParameters(IList<DatabaseColumn> cols){
+    return string.Join(", ",cols.Select(GetParameter));
+}
+string GetParameter(DatabaseColumn col){
+    var kind = GetKind(col);
+    var name = col.Name;
+    return $"[FromODataUri] {kind} key{name}";
+}
+
+string GetPredicates(IList<DatabaseColumn> cols){
+    
+    return string.Join(" && ", cols.Select(GetPredicate));
+}
+string GetPredicate(DatabaseColumn col){
+    
+    var name = col.Name;
+    return $"p.{name}==key{name}";
+}
+#>

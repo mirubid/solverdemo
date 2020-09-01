@@ -9,6 +9,7 @@
 
 
 <#@ include file="assemblyrefs.ttinclude" #>
+<#@ include file="CodeGenHelper.ttinclude" #>
 
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
@@ -22,6 +23,7 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
+
 namespace solverweb.model {
 <#
 
@@ -47,9 +49,11 @@ void GenClass(DatabaseTable table){
     public class <#=table.Name#>
     {
     <#+
-        foreach(var col in table.Columns){
-            GenProperty(col);
-        }
+    PushIndent("    ");
+    foreach(var col in table.Columns){
+        GenProperty(col);
+    }
+    PopIndent();
     #>
     }
 <#+
@@ -68,63 +72,8 @@ void GenProperty(DatabaseColumn col){
 <#+        
     }
     #>
-    public <#= kind #> <#=col.Name#>{get;set;}
+    public <#= kind #><#=GetNullable(col)#> <#=col.Name#>{get;set;}
 <#+
 }
 #>
 
-<#+
-private static string GetKind(DatabaseColumn col)
-{
-    var dt = col.DataType;
-    if (col.DataType == null)
-        return null;
-
-    Type type = col.DataType.GetNetType();
-    if (type == null)
-        return null;
-
-    
-
-    if (type == typeof(string))
-        return "string";
-
-    if (type == typeof(short))
-        return "short";
-
-    if (type == typeof(int))
-        return "int";
-
-    if (type == typeof(long))
-        return "long";
-
-    if (type == typeof(bool))
-        return "bool";
-
-    if (type == typeof(Guid))
-        return "System.Guid";
-
-    if (type == typeof(DateTime))
-        return "DateTimeOffset";
-
-    if (type == typeof(TimeSpan))
-        return "TimeSpan";
-
-    if (type == typeof(decimal))
-        return "decimal";
-
-    if (type == typeof(byte) || type == typeof(sbyte))
-        return "byte";
-
-    if (type == typeof(byte[]))
-        return "byte[]";
-
-    if (type == typeof(double))
-        return "double";
-
-    if (type == typeof(float))
-        return "float";
-
-    return null;
-}
-#>

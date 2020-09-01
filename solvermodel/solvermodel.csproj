@@ -15,12 +15,20 @@
     <None Include="DataModel.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>DataModel.tt</DependentUpon>
+      <DependentUpon>DataModel.tt</DependentUpon>      
+    </None>
+    <None Include="DbContext.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DbContext.tt</DependentUpon>
     </None>
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="DatabaseSchemaReader" Version="2.7.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="3.1.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.7" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.7" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.7" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="4.7.0" />
@@ -40,6 +48,11 @@
     <None Update="DataModel.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>DataModel.cs</LastGenOutput>
+      
+    </None>
+    <None Update="DbContext.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DbContext.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
@@ -52,6 +65,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>DataModel.tt</DependentUpon>
+    </Compile>
+    <Compile Update="DbContext.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DbContext.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 

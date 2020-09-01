@@ -6,6 +6,8 @@ using DatabaseSchemaReader.DataSchema;
 using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace solvertest
 {
@@ -17,12 +19,19 @@ namespace solvertest
         {
         }
 
+        IList<DatabaseColumn> GetKeys(DatabaseTable table)
+        {
+            return table.Columns.Where(col => col.IsPrimaryKey).ToList();
+        }
         [Test]
         public void ShouldBeAbleToLoadAllTables()
         {
 
 
-            IConfigurationRoot config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+             
+            var cb = new ConfigurationBuilder();
+            Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(cb, "appsettings.json");
+            IConfiguration config = cb.Build();
 
             var connectionString = config.GetConnectionString("db");
             
@@ -67,6 +76,37 @@ namespace solvertest
             }
         }
 
+        [Test]
+        public void ShouldBeAbleToUseDbContext()
+        {
+            var db = new TestDbContext();
+
+            var cities=db.Cities.Take(4).ToList();
+
+            Assert.IsNotNull(cities);
+
+            Assert.AreNotEqual(0, cities.Count);
+
+            foreach(var city in cities)
+            {
+                TestContext.WriteLine($"{city.CityID}  {city.CityName}");
+            }
+        }
+
+        [Test]
+        public void ShouldBeAbleToQueryDbContext()
+        {
+            var db = new TestDbContext();
+
+            var city = db.Cities.Where(c => c.CityID == 4).First();
+
+            Assert.IsNotNull(city);
+
+            
+            TestContext.WriteLine($"{city.CityID}  {city.CityName}");
+            
+        }
+
         private static EdmPrimitiveTypeKind? GetKind(DatabaseColumn col)
         {
             var dt = col.DataType;
@@ -74,6 +114,7 @@ namespace solvertest
                 return null;
 
             Type type = col.DataType.GetNetType();
+            
             if (type == null)
                 return null;
 

@@ -1,0 +1,76 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ output extension=".cs" #>
+<#@ assembly name="NetStandard" #>
+<#@ assembly name="System.Runtime" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Linq" #>
+<#@ assembly name="System.Data" #>
+<#@ include file="assemblyrefs.ttinclude" #>
+<#@ include file="CodeGenHelper.ttinclude" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="Microsoft.Extensions.Configuration" #>
+<#@ import namespace="Microsoft.Extensions.Configuration.Json" #>
+<#@ import namespace="DatabaseSchemaReader" #>
+<#@ import namespace="DatabaseSchemaReader.DataSchema" #>
+<#@ import namespace="System.Data.SqlClient" #>
+<#
+var cnnstr = GetConnectionString("db");
+DatabaseSchema schema = null;
+using(var cnn = new SqlConnection(cnnstr))
+using(var dbReader = new DatabaseReader(cnn))
+{
+    schema = dbReader.ReadAll();
+}
+#>
+using System;
+using Microsoft.EntityFrameworkCore;
+
+using solverweb.model;
+
+namespace solverweb.data {
+
+    public partial class SolverDbContext:DbContext
+    {
+
+        public SolverDbContext(DbContextOptions<SolverDbContext> options):base(options){
+
+        }
+    <#
+    foreach(var table in schema.Tables)
+    {
+        if(table.Name.EndsWith("_Archive"))continue;
+        var ns = GetNamespace(table);
+    #>
+        public DbSet<<#=ns#>.<#=GetEntityName(table) #>> <#=GetEntityName(table)#> {get;set;}
+
+    <#
+
+    }
+
+    GenModelCreating(schema);
+    #>
+    }
+}
+
+<#+
+void GenModelCreating(DatabaseSchema schema){
+    #>
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    <#+
+    foreach(var table in schema.Tables){
+        if(table.Name.EndsWith("_Archive"))continue;
+    #>
+    modelBuilder
+        .Entity<<#=GetNamespace(table)#>.<#=GetEntityName(table)#>>()
+        .ToTable("<#=table.Name#>", "<#=table.SchemaOwner#>");
+
+    <#+
+    }
+    #>    
+}
+<#+
+}
+#>

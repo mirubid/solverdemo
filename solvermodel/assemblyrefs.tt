@@ -7,8 +7,10 @@
 
     LoadProjectDetails();
 
+    ReferenceAssembly("Microsoft.Extensions.Configuration.Abstractions");
     ReferenceAssembly("Microsoft.Extensions.Configuration");
     ReferenceAssembly("Microsoft.Extensions.Configuration.Json");
+    
     ReferenceAssembly("DatabaseSchemaReader");
 
     

@@ -1,0 +1,73 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ output extension=".cs" #>
+<#@ assembly name="NetStandard" #>
+<#@ assembly name="System.Runtime" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Linq" #>
+<#@ assembly name="System.Data" #>
+<#@ include file="$(SolutionDir)solvermodel/assemblyrefs.ttinclude" #>
+<#@ include file="$(SolutionDir)solvermodel/CodeGenHelper.ttinclude" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="Microsoft.Extensions.Configuration" #>
+<#@ import namespace="Microsoft.Extensions.Configuration.Json" #>
+<#@ import namespace="DatabaseSchemaReader" #>
+<#@ import namespace="DatabaseSchemaReader.DataSchema" #>
+<#@ import namespace="System.Data.SqlClient" #>
+<#
+
+DatabaseSchema schema = GetDatabaseSchema("db");
+#>
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.OData.Edm;
+using Microsoft.AspNet.OData.Builder;
+
+using solverweb.data;
+
+namespace solverweb {
+    [System.CodeDom.Compiler.GeneratedCode("<#=System.IO.Path.GetFileName(this.Host.TemplateFile)#>","0")]
+    public static partial class SolverWebStartup{
+
+        public static void ConfigureOdata(ODataConventionModelBuilder odataBuilder){
+<#
+        PushIndent("        ");
+        foreach(var table in schema.Tables)
+        {
+            if(table.Name.EndsWith("_Archive"))continue;
+            
+            GenConfiguration(table);
+            
+        }
+        PopIndent();
+#>
+        }
+    }
+}
+
+<#+
+void GenConfiguration(DatabaseTable table){
+    var ns = GetNamespace(table);
+    var name = GetEntityName(table);
+    var pks = GetPrimaryKeys(table);
+#>
+    odataBuilder.EntitySet<<#=ns#>.<#=name#>>("<#=name#>")
+        .EntityType<#=GetHasKeyClause(pks)#>;
+<#+
+}
+string GetHasKeyClause(IList<DatabaseColumn> cols){
+    string s = GetKeys(cols);
+
+    return $".HasKey(t=>new {{{s}}})";
+}
+string GetKey(DatabaseColumn col){
+    
+    return $"t.{col.Name}";
+}
+string GetKeys(IList<DatabaseColumn> cols){
+    
+    return string.Join(", ",cols.Select(GetKey));
+}
+#>

@@ -1,0 +1,149 @@
+﻿
+<#@ assembly name="System.Core" #>
+<#@ assembly name="EnvDTE" #>
+<#@ assembly name="VSLangProj" #>
+
+<#@ import namespace="DatabaseSchemaReader" #>
+<#@ import namespace="DatabaseSchemaReader.DataSchema" #>
+
+<#@ import namespace="Microsoft.Extensions.Configuration" #>
+<#@ import namespace="Microsoft.Extensions.Configuration.Json" #>
+<#@ import namespace="System.Collections.Generic" #>
+    
+
+<#+
+private string _slndir=null;
+
+public string GetSolutionDirectory()
+{
+    if(_slndir==null){
+        var serviceProvider = this.Host as IServiceProvider;
+        var dte = serviceProvider.GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+        _slndir= System.IO.Path.GetDirectoryName(dte.Solution.FullName);
+    }
+    return _slndir;
+}
+
+public string SolutionRelativePath(string path){
+    return System.IO.Path.Combine(GetSolutionDirectory(),path);
+}
+
+public IConfiguration GetConfiguration(){
+
+    var cb = new ConfigurationBuilder();
+    var configfile=SolutionRelativePath("solverweb\\appsettings.json");
+    Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(cb, configfile );
+    return cb.Build();
+}
+
+public string GetConnectionString(string name){
+    // couldn't get ConfigurationBuilder worker so using this for now
+    return "Data Source=(localdb)\\ProjectsV13;Initial Catalog=WideWorldImporters;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+}
+public DatabaseSchema GetDatabaseSchema(string db){
+    var cnnstr = GetConnectionString(db);
+    DatabaseSchema schema = null;
+    using(var cnn = new SqlConnection(cnnstr))
+    using(var dbReader = new DatabaseReader(cnn))
+    {
+        schema = dbReader.ReadAll();
+    }
+    return schema;
+}
+private static string GetNamespace(DatabaseTable table){
+    return $"solverweb.model";
+}
+private static string GetEntityName(DatabaseTable table){
+    return table.Name;
+}
+private static string GetKind(DatabaseColumn col)
+{
+    var dt = col.DataType;
+    if (col.DataType == null)
+        return null;
+
+    Type type = col.DataType.GetNetType();
+    if (type == null)
+        return null;
+
+    
+
+    if (type == typeof(string))
+        return "string";
+
+    if (type == typeof(short))
+        return "short";
+
+    if (type == typeof(int))
+        return "int";
+
+    if (type == typeof(long))
+        return "long";
+
+    if (type == typeof(bool))
+        return "bool";
+
+    if (type == typeof(Guid))
+        return "System.Guid";
+
+    if (type == typeof(DateTime))
+        return "DateTime";
+
+    if (type == typeof(DateTimeOffset))
+        return "DateTimeOffset";
+
+    if (type == typeof(TimeSpan))
+        return "TimeSpan";
+
+    if (type == typeof(decimal))
+        return "decimal";
+
+    if (type == typeof(byte) || type == typeof(sbyte))
+        return "byte";
+
+    if (type == typeof(byte[]))
+        return "byte[]";
+
+    if (type == typeof(double))
+        return "double";
+
+    if (type == typeof(float))
+        return "float";
+
+    return null;
+}
+
+///<summary>print the '?' to make static types nullable as needed</summary>
+private static string GetNullable(DatabaseColumn col)
+{
+    if(!col.Nullable)return String.Empty;
+
+    var dt = col.DataType;
+    if (col.DataType == null)
+        return String.Empty;
+
+    Type type = col.DataType.GetNetType();
+    if (type == null)
+        return string.Empty;
+
+    
+
+    if (type == typeof(string))
+        return "";
+
+    if(type.IsArray)
+        return "";
+
+    if(!type.IsByRef)
+        return "?";
+
+    
+
+    return String.Empty;
+}
+
+IList<DatabaseColumn> GetPrimaryKeys(DatabaseTable table)
+{
+    return table.Columns.Where(col => col.IsPrimaryKey).ToList();
+}
+#>

@@ -37,9 +37,9 @@ namespace solverweb
             services.AddControllers();
 
             services.AddOData();
-            services.AddODataQueryFilter();
+            //services.AddODataQueryFilter();
 
-            
+            services.AddSolverData(Configuration);
                 
         }
 
@@ -62,16 +62,12 @@ namespace solverweb
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
-                endpoints.MapODataRoute("odata", "odata", GetEdmModel());
-                endpoints.Filter().MaxTop(100);
-
-                endpoints.MapGet("{*path}", (HttpContext context)=> {
-                    context.Response.ContentType = "text/plain";
-                    context.Response.StatusCode = 200;
-                    var path = context.Request.RouteValues["path"]??"null";
-                    return context.Response.WriteAsync($"hello world ({path})");
-                });
                 
+                
+                endpoints.Select().Filter().OrderBy().Count().MaxTop(25);
+
+                endpoints.MapODataRoute("odata", "odata", GetEdmModel());
+
             });
 
             
@@ -80,17 +76,12 @@ namespace solverweb
         {
             var odataBuilder = new ODataConventionModelBuilder();
 
-            var demo = odataBuilder.EntitySet<City>("Demo");
-            demo.EntityType.HasKey(d => d.Key);
+            SolverWebStartup.ConfigureOdata(odataBuilder);
 
-            //return odataBuilder.GetEdmModel();
+            var demo = odataBuilder.EntitySet<City>("Test");
+            demo.EntityType.HasKey(e => new { e.CityID });
 
-
-            var resolver = new DbSchemaResolver();
-            var cnn = Configuration.GetConnectionString("db");
-
-            return resolver.GetEdmModel(cnn);
-
+            return odataBuilder.GetEdmModel();
             
         }
     }
